@@ -1,5 +1,4 @@
 import { clerkClient } from "@clerk/nextjs/server";
-import type { User } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import {
@@ -9,12 +8,7 @@ import {
 } from "~/server/api/trpc";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-
-const filterUserForClient = (user: User) => ({
-  id: user.id,
-  username: user.username,
-  imageUrl: user.imageUrl,
-});
+import { filterUserForClient } from "~/server/helpers/filterUserForClient";
 
 const rateLimit = new Ratelimit({
   redis: Redis.fromEnv(),
