@@ -4,7 +4,8 @@ import relativeTime from "dayjs/plugin/relativeTime";
 import Head from "next/head";
 import Image from "next/image";
 import { useState } from "react";
-import { LoadingPage } from "~/components/loading";
+import toast from "react-hot-toast";
+import { LoadingPage, LoadingSpinner } from "~/components/loading";
 import { api } from "~/utils/api";
 import type { RouterOutputs } from "~/utils/api";
 
@@ -20,6 +21,14 @@ const CreatePostWizard = () => {
     onSuccess: () => {
       setInput("");
       void ctx.post.getAll.invalidate();
+    },
+    onError: (e) => {
+      const errorMessage = e.data?.zodError?.fieldErrors.content;
+      if (errorMessage?.[0]) {
+        toast.error(errorMessage[0]);
+      } else {
+        toast.error("Failed to create post! Please try again.");
+      }
     },
   });
 
@@ -42,8 +51,25 @@ const CreatePostWizard = () => {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         disabled={isPosting}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            if (input !== "") {
+              mutate({ content: input });
+            }
+          }
+        }}
       />
-      <button onClick={() => mutate({ content: input })}>Post</button>
+      {input !== "" && !isPosting && (
+        <button onClick={() => mutate({ content: input })} disabled={isPosting}>
+          Post
+        </button>
+      )}
+      {isPosting && (
+        <div className="flex items-center justify-center">
+          <LoadingSpinner size={20} />
+        </div>
+      )}
     </div>
   );
 };
