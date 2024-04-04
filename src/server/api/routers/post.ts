@@ -7,11 +7,19 @@ import {
   privateProcedure,
   publicProcedure,
 } from "~/server/api/trpc";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
 
 const filterUserForClient = (user: User) => ({
   id: user.id,
   username: user.username,
   imageUrl: user.imageUrl,
+});
+
+const rateLimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(3, "1 m"),
+  analytics: true,
 });
 
 export const postRouter = createTRPCRouter({
@@ -52,6 +60,14 @@ export const postRouter = createTRPCRouter({
     .input(z.object({ content: z.string().emoji().min(1).max(280) }))
     .mutation(async ({ ctx, input }) => {
       const authorId = ctx.userId;
+
+      const { success } = await rateLimit.limit(authorId);
+      if (!success) {
+        throw new TRPCError({
+          code: "TOO_MANY_REQUESTS",
+          message: "Too many requests",
+        });
+      }
 
       const post = await ctx.db.post.create({
         data: {
